@@ -19,7 +19,7 @@
             android:layout_height="60dp"
             android:layout_weight="75"
             android:textSize="15sp"
-            android:hint="@string/type_a_sub_reddit"
+            android:hint="@string/type_a_feed_name"
             android:layout_gravity="bottom"
             android:textAlignment="center"
             android:id="@+id/etFeedName"/>
@@ -28,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="60dp"
             android:layout_weight="30"
-            android:text="@string/refresh_feed"
+            android:text="@string/refresh"
             android:layout_gravity="center"
             android:gravity="center"
             android:id="@+id/btnRefreshFeed"/>

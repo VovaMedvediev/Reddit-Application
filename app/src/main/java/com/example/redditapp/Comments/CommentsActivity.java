@@ -1,4 +1,4 @@
-package com.example.redditapp;
+package com.example.redditapp.Comments;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -8,10 +8,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.redditapp.ExtractXML;
+import com.example.redditapp.FeedAPI;
+import com.example.redditapp.R;
+import com.example.redditapp.URLS;
+import com.example.redditapp.model.Feed;
+import com.example.redditapp.model.entry.Entry;
 import com.nostra13.universalimageloader.cache.memory.impl.WeakMemoryCache;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
@@ -21,6 +30,15 @@ import com.nostra13.universalimageloader.core.assist.ImageScaleType;
 import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.simplexml.SimpleXmlConverterFactory;
+
 
 /**
  * Created by user on 31.10.2017.
@@ -29,6 +47,7 @@ import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 public class CommentsActivity extends AppCompatActivity {
 
     public static final String TAG = "CommentsActivity";
+    URLS urls = new URLS();
 
     private static String postURL;
     private static String postThumbnailURL;
@@ -38,13 +57,86 @@ public class CommentsActivity extends AppCompatActivity {
 
     private int defaultImage;
 
+    private String currentFeed;
+    private ListView mListView;
+
+    private ArrayList<Comment> mComments;
+    private ProgressBar mProgressBar;
+    private TextView progressText;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_comments);
+        mProgressBar = (ProgressBar) findViewById(R.id.commentsLoadingProgressBar);
+        progressText = (TextView) findViewById(R.id.progressText);
         Log.d(TAG, "onCreate: Started.");
+        mProgressBar.setVisibility(View.VISIBLE);
         setupImageLoader();
         initPost();
+        init();
+    }
+
+    private void init() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(urls.BASE_URL)
+                .addConverterFactory(SimpleXmlConverterFactory.create())
+                .build();
+
+        FeedAPI feedAPI = retrofit.create(FeedAPI.class);
+
+        Call<Feed> call = feedAPI.getFeed(currentFeed);
+
+        call.enqueue(new Callback<Feed>() {
+            @Override
+            public void onResponse(Call<Feed> call, Response<Feed> response) {
+                Log.d(TAG, "onResponse: Server response: " + response.toString());
+
+                mComments = new ArrayList<Comment>();
+                List<Entry> entrys = response.body().getEntrys();
+                for( int i = 0; i<entrys.size(); i++) {
+                    ExtractXML extract = new ExtractXML(entrys.get(i).getContent(), "div class=\"md\"><p>", "</p>");
+                    List<String> commentDetails = extract.start();
+
+                    try{
+                        mComments.add(new Comment(
+                                commentDetails.get(0),
+                                entrys.get(i).getAuthor().getName(),
+                                entrys.get(i).getUpdated(),
+                                entrys.get(i).getId()
+                        ));
+                    }catch(IndexOutOfBoundsException e) {
+                        mComments.add(new Comment(
+                                "Error reading comment",
+                                "None",
+                                "None",
+                                "None"
+                        ));
+                        Log.e(TAG, "onResponse: IndexOutOfBoundsException:" + e.getMessage() );
+                    }
+                    catch(NullPointerException e) {
+                        mComments.add(new Comment(
+                                commentDetails.get(0),
+                                "None",
+                                entrys.get(i).getUpdated(),
+                                entrys.get(i).getId()
+                        ));
+                    }
+                }
+                mListView = (ListView) findViewById(R.id.commentsListView);
+                CommentsListAdapter adapter = new CommentsListAdapter(CommentsActivity.this, R.layout.comments_layout, mComments);
+                mListView.setAdapter(adapter);
+
+                mProgressBar.setVisibility(View.GONE);
+                progressText.setText("");
+            }
+
+            @Override
+            public void onFailure(Call<Feed> call, Throwable t) {
+                Log.e(TAG, "onFailure: Unable to retrieve RSS" + t.getMessage() );
+                Toast.makeText(CommentsActivity.this, "An Error Occured", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void initPost() {
@@ -66,7 +158,16 @@ public class CommentsActivity extends AppCompatActivity {
         author.setText(postAuthor);
         updated.setText(postUpdated);
         displayImage(postThumbnailURL, thumbnail, progressBar);
-    }
+
+        //NOTE:: Not similar for work posts will cause an error. We can catch it with ArrayIndexOutOfBoundsException
+        try{
+            String[] splitURL = postURL.split(urls.BASE_URL);
+            currentFeed = splitURL[1];
+            Log.d(TAG, "initPost: current feed: " + currentFeed);
+        }catch(ArrayIndexOutOfBoundsException e) {
+            Log.e(TAG, "initPost: ArrayIndexOutOfBoundsException: " + e.getMessage() );
+        }
+        }
 
     private void displayImage(String imageURL, ImageView imageView, final ProgressBar progressBar) {
 

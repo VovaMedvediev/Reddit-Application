@@ -6,8 +6,12 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,8 +21,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.redditapp.Account.LoginActivity;
 import com.example.redditapp.ExtractXML;
 import com.example.redditapp.FeedAPI;
+import com.example.redditapp.MainActivity;
 import com.example.redditapp.R;
 import com.example.redditapp.URLS;
 import com.example.redditapp.WebViewActivity;
@@ -74,10 +80,29 @@ public class CommentsActivity extends AppCompatActivity {
         mProgressBar = (ProgressBar) findViewById(R.id.commentsLoadingProgressBar);
         progressText = (TextView) findViewById(R.id.progressText);
         Log.d(TAG, "onCreate: Started.");
+        setupToolbar();
         mProgressBar.setVisibility(View.VISIBLE);
         setupImageLoader();
         initPost();
         init();
+    }
+
+    private void setupToolbar() {
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_main);
+        setSupportActionBar(toolbar);
+        toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                Log.d(TAG, "onMenuItemClick: clicked menu item:" + item);
+
+                switch (item.getItemId()){
+                    case R.id.navLogin:
+                        Intent intent = new Intent(CommentsActivity.this, LoginActivity.class);
+                        startActivity(intent);
+                }
+                return false;
+            }
+        });
     }
 
     private void init() {
@@ -199,7 +224,7 @@ public class CommentsActivity extends AppCompatActivity {
 
         private void getUserComment() {
             final Dialog dialog = new Dialog(CommentsActivity.this);
-            dialog.setTitle("dialog");
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             dialog.setContentView(R.layout.comment_input_dialog);
             int width = (int)(getResources().getDisplayMetrics().widthPixels*0.95);
             int height = (int)(getResources().getDisplayMetrics().heightPixels*0.6);
@@ -261,6 +286,12 @@ public class CommentsActivity extends AppCompatActivity {
         // END - UNIVERSAL IMAGE LOADER SETUP
 
         defaultImage = CommentsActivity.this.getResources().getIdentifier("@drawable/reddit_alien", null, CommentsActivity.this.getPackageName());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.navigation_menu, menu);
+        return true;
     }
 }
 

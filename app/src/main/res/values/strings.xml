@@ -17,4 +17,5 @@
     <string name="loading_webpage">Loading Webpage...</string>
     <string name="post_comment">post Comment</string>
     <string name="your_comment">Your Comment...</string>
+    <string name="login">Login</string>
 </resources>

@@ -2,8 +2,10 @@ package com.example.redditapp.Comments;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -63,6 +65,11 @@ public class CommentsActivity extends AppCompatActivity {
     private static String postTitle;
     private static String postAuthor;
     private static String postUpdated;
+    private static String postID;
+
+    private String modhash;
+    private String cookie;
+    private String username;
 
     private int defaultImage;
 
@@ -81,10 +88,18 @@ public class CommentsActivity extends AppCompatActivity {
         progressText = (TextView) findViewById(R.id.progressText);
         Log.d(TAG, "onCreate: Started.");
         setupToolbar();
+        getSessionParams();
         mProgressBar.setVisibility(View.VISIBLE);
         setupImageLoader();
         initPost();
         init();
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        Log.d(TAG, "onPostResume: Resuming Activity");
+        getSessionParams();
     }
 
     private void setupToolbar() {
@@ -158,7 +173,7 @@ public class CommentsActivity extends AppCompatActivity {
                 mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        getUserComment();;
+                        getUserComment(postID);
                     }
                 });
 
@@ -181,6 +196,7 @@ public class CommentsActivity extends AppCompatActivity {
         postTitle = incomingIntent.getStringExtra("@string/post_title");
         postAuthor = incomingIntent.getStringExtra("@string/post_author");
         postUpdated = incomingIntent.getStringExtra("@string/post_updated");
+        postID = incomingIntent.getStringExtra("@string/post_id");
 
         TextView title = (TextView) findViewById(R.id.postTitle);
         TextView author = (TextView) findViewById(R.id.postAuthor);
@@ -207,7 +223,7 @@ public class CommentsActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "onClick: reply.");
-                getUserComment();
+                getUserComment(postID);
             }
         });
 
@@ -222,7 +238,7 @@ public class CommentsActivity extends AppCompatActivity {
         });
         }
 
-        private void getUserComment() {
+        private void getUserComment(String post_id) {
             final Dialog dialog = new Dialog(CommentsActivity.this);
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             dialog.setContentView(R.layout.comment_input_dialog);
@@ -231,6 +247,17 @@ public class CommentsActivity extends AppCompatActivity {
 
             dialog.getWindow().setLayout(width, height);
             dialog.show();
+
+            Button btnPostComment = (Button) dialog.findViewById(R.id.btnPostComment);
+            final EditText comment = (EditText) dialog.findViewById(R.id.dialogComment);
+
+            btnPostComment.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "onClick: Attempting to post comment.");
+
+                }
+            });
         }
 
     private void displayImage(String imageURL, ImageView imageView, final ProgressBar progressBar) {
@@ -292,6 +319,22 @@ public class CommentsActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.navigation_menu, menu);
         return true;
+    }
+
+    /**
+     *get the session params stored in memory from Loggin in
+     */
+    private void getSessionParams() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(CommentsActivity.this);
+
+        username = preferences.getString("@string/SessionUsername", "");
+        modhash = preferences.getString("@string/SessionModhash", "");
+        cookie = preferences.getString("@string/SessionCookie", "");
+        Log.d(TAG, "getSessionParams: Storing session variables:  \n" +
+                "username:" + username + "\n" +
+                "modhash:" + modhash + "\n" +
+                "cookie:" + cookie
+        );
     }
 }
 

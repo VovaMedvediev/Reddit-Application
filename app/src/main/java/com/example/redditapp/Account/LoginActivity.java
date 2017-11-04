@@ -1,6 +1,8 @@
 package com.example.redditapp.Account;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -17,6 +19,8 @@ import com.example.redditapp.URLS;
 import com.example.redditapp.model.Feed;
 
 import java.util.HashMap;
+
+import javax.security.auth.login.LoginException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -62,7 +66,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void login(String username, String password){
+    private void login(final String username, String password){
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(urls.LOGIN_URL)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -77,14 +81,55 @@ public class LoginActivity extends AppCompatActivity {
         call.enqueue(new Callback<CheckLogin>() {
             @Override
             public void onResponse(Call<CheckLogin> call, Response<CheckLogin> response) {
+                try{
                 Log.d(TAG, "onResponse: Server response: " + response.toString());
+                String modhash = response.body().getJson().getData().getModhash();
+                String cookie = response.body().getJson().getData().getCookie();
+
+                if(!modhash.equals("")){
+                    setSessionParams(username, modhash,cookie);
+                    mProgressBar.setVisibility(View.GONE);
+                    mUsername.setText("");
+                    mPassword.setText("");
+                    Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+                    //navigate back to previous activity
+                    finish();
+                }}
+                catch(NullPointerException e){
+                    Log.e(TAG, "onResponse: NullPointerException" + e.getMessage() );
+                }
             }
 
             @Override
             public void onFailure(Call<CheckLogin> call, Throwable t) {
+                mProgressBar.setVisibility(View.GONE);
                 Log.e(TAG, "onFailure: Unable to login" + t.getMessage() );
                 Toast.makeText(LoginActivity.this, "An Error Occured", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Save the session params once Login in successful
+     * @param username
+     * @param modhash
+     * @param cookie
+     */
+    private void setSessionParams(String username, String modhash, String cookie) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
+        SharedPreferences.Editor editor = preferences.edit();
+
+        Log.d(TAG, "setSessionParams: Storing session variables:  \n" +
+                "username:" + username + "\n" +
+                "modhash:" + modhash + "\n" +
+                "cookie:" + cookie
+        );
+
+        editor.putString("@string/SessionUsername", username);
+        editor.commit();
+        editor.putString("@string/SessionModhash", modhash);
+        editor.commit();
+        editor.putString("@string/SessionCookie", cookie);
+        editor.commit();
     }
 }

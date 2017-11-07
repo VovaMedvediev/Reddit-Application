@@ -23,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.redditapp.Account.CheckLogin;
 import com.example.redditapp.Account.LoginActivity;
 import com.example.redditapp.ExtractXML;
 import com.example.redditapp.FeedAPI;
@@ -42,12 +43,14 @@ import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory;
 
 
@@ -93,13 +96,6 @@ public class CommentsActivity extends AppCompatActivity {
         setupImageLoader();
         initPost();
         init();
-    }
-
-    @Override
-    protected void onPostResume() {
-        super.onPostResume();
-        Log.d(TAG, "onPostResume: Resuming Activity");
-        getSessionParams();
     }
 
     private void setupToolbar() {
@@ -173,7 +169,7 @@ public class CommentsActivity extends AppCompatActivity {
                 mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        getUserComment(postID);
+                        getUserComment(mComments.get(position).getId());
                     }
                 });
 
@@ -238,7 +234,7 @@ public class CommentsActivity extends AppCompatActivity {
         });
         }
 
-        private void getUserComment(String post_id) {
+        private void getUserComment(final String post_id) {
             final Dialog dialog = new Dialog(CommentsActivity.this);
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             dialog.setContentView(R.layout.comment_input_dialog);
@@ -256,6 +252,52 @@ public class CommentsActivity extends AppCompatActivity {
                 public void onClick(View v) {
                     Log.d(TAG, "onClick: Attempting to post comment.");
 
+                    Retrofit retrofit = new Retrofit.Builder()
+                            .baseUrl(urls.COMMENT_URL)
+                            .addConverterFactory(GsonConverterFactory.create())
+                            .build();
+
+                    FeedAPI feedAPI = retrofit.create(FeedAPI.class);
+
+                    HashMap<String, String> headerMap = new HashMap<>();
+                    headerMap.put("User-Agent", username);
+                    headerMap.put("X-Modhash", modhash);
+                    headerMap.put("cookie", "reddit_session=" + cookie);
+
+                    Log.d(TAG, "btnPostComment:  \n" +
+                            "username:" + username + "\n" +
+                            "modhash:" + modhash + "\n" +
+                            "cookie:" + cookie
+                    );
+
+                    String theComment = comment.getText().toString();
+                    Call<CheckComment> call = feedAPI.submitComment(headerMap, "comment", post_id, theComment);
+
+                    call.enqueue(new Callback<CheckComment>() {
+                        @Override
+                        public void onResponse(Call<CheckComment> call, Response<CheckComment> response) {
+                            try {
+                                Log.d(TAG, "onResponse: Server Response: " + response.toString());
+
+                                String postSuccess = response.body().getSuccess();
+                                if(postSuccess.equals("true")){
+                                    Toast.makeText(CommentsActivity.this, "Post successful", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                }else{
+                                    Toast.makeText(CommentsActivity.this, "An Error Occured. Did you sign in?", Toast.LENGTH_SHORT).show();
+                                }
+
+                            }catch(NullPointerException e){
+                                Log.e(TAG, "onResponse: NullPointerException" + e.getMessage() );
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<CheckComment> call, Throwable t) {
+                            Log.e(TAG, "onFailure: Unable to login" + t.getMessage() );
+                            Toast.makeText(CommentsActivity.this, "An Error Occured", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
             });
         }
@@ -335,6 +377,13 @@ public class CommentsActivity extends AppCompatActivity {
                 "modhash:" + modhash + "\n" +
                 "cookie:" + cookie
         );
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        Log.d(TAG, "onPostResume: Resuming Activity");
+        getSessionParams();
     }
 }
 

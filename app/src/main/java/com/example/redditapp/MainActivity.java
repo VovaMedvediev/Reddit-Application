@@ -47,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
 
         setupToolbar();
 
-        init();
-
         btnRefreshFeed.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

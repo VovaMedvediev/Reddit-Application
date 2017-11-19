@@ -46,7 +46,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         Log.d(TAG, "onCreate: started.");
-        Button btnLogin = (Button) findViewById(R.id.btn_login);
+        final Button btnLogin = (Button) findViewById(R.id.btn_login);
         mPassword = (EditText) findViewById(R.id.input_password);
         mUsername = (EditText) findViewById(R.id.input_username);
         mProgressBar = (ProgressBar) findViewById(R.id.loginRequestLoadingProgressBar);
@@ -61,6 +61,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 if(!username.equals("") && !password.equals("")) {
                     mProgressBar.setVisibility(View.VISIBLE);
+                    login(username, password);
                 }
             }
         });
@@ -75,7 +76,7 @@ public class LoginActivity extends AppCompatActivity {
         FeedAPI feedAPI = retrofit.create(FeedAPI.class);
 
         HashMap<String, String> headerMap = new HashMap<>();
-        headerMap.put("Content-type", "application/json");
+        headerMap.put("Content-Type", "application/json");
 
         Call<CheckLogin> call = feedAPI.signIn(headerMap, username, username, password, "json");
         call.enqueue(new Callback<CheckLogin>() {

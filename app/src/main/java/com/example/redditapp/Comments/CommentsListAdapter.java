@@ -107,16 +107,6 @@ public class CommentsListAdapter extends ArrayAdapter<Comment> {
             holder.date_updated.setText(date_updated);
             holder.mProgressBar.setVisibility(View.GONE);
 
-
-            int defaultImage = mContext.getResources().getIdentifier("@drawable/reddit_alien",null,mContext.getPackageName());
-
-            //create display options
-            DisplayImageOptions options = new DisplayImageOptions.Builder().cacheInMemory(true)
-                    .cacheOnDisc(true).resetViewBeforeLoading(true)
-                    .showImageForEmptyUri(defaultImage)
-                    .showImageOnFail(defaultImage)
-                    .showImageOnLoading(defaultImage).build();
-
             return convertView;
         }catch (IllegalArgumentException e){
             Log.e(TAG, "getView: IllegalArgumentException: " + e.getMessage() );
